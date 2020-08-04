@@ -1,0 +1,7 @@
+vrf,interface,description,dot1q,ip_add,subnet,bgp_asn,bgp_neighbor,remote_asn
+test1,GigabitEthernet0/0/0.101,test1-description,101,10.101.0.0,255.255.255.252,65101,10.101.0.2,65201
+test2,GigabitEthernet0/0/0.102,test2-description,102,10.102.0.0,255.255.255.252,65102,10.102.0.2,65202
+test3,GigabitEthernet0/0/0.103,test3-description,103,10.103.0.0,255.255.255.252,65103,10.103.0.2,65203
+test4,GigabitEthernet0/0/0.104,test4-description,104,10.104.0.0,255.255.255.252,65104,10.104.0.2,65204
+test5,GigabitEthernet0/0/0.105,test5-description,105,10.105.0.0,255.255.255.252,65105,10.105.0.2,65205
+test6,GigabitEthernet0/0/0.106,test6-description,106,10.106.0.0,255.255.255.252,,,

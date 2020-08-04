@@ -1,0 +1,15 @@
+
+conf t
+interface {{ interface }}
+ description {{ description }}
+ encapsulation dot1Q {{ dot1q }}
+ ip vrf forwarding {{ vrf }}
+ ip address {{ ip_add }} {{ subnet }}
+!
+router bgp {{ bgp_asn }}
+ !        
+ address-family ipv4 vrf {{ vrf }}
+  neighbor {{ bgp_neighbor }} remote-as {{ remote_asn }}
+  neighbor {{ bgp_neighbor }} activate
+ exit-address-family
+!
