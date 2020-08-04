@@ -41,7 +41,7 @@ template_var = sys.argv[2]
 
 ## reads full csv ##
 df = pd.read_csv(csv_var)
-data = data.fillna('')
+data = df.fillna('')
 data_list = data.to_dict('records')
 
 
