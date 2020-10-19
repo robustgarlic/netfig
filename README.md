@@ -9,7 +9,7 @@ Each row will create a new file, based on the first columns variables.
 
 #### Requirements:
 This has been tested using python 3.8.
-Please see requirements.txt and install via pip install requirements.txt perferably in ones favorite virtual environment.
+Please see requirements.txt and install via pip install -r requirements.txt perferably in ones favorite virtual environment.
 
 #### Usage:
 
