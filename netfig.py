@@ -95,6 +95,7 @@ template = env.get_template(template_var)
 
 
 ## loop to replace variables based on jinja template and renders accordingly ##
+## outputs each row as its own file ##
 for keys in data_list:
     config = template.render(keys)
     fname = list(keys.values())[0]
@@ -102,6 +103,13 @@ for keys in data_list:
             outputfile.write(config)
 
 
+## outputs all content as a single file, helpful for one config for one device ##
+## this file is stored in main directory ##
+for keys in data_list:
+    config = template.render(keys)
+    with open("output-singlefile.txt", 'a') as singleoutput:
+        singleoutput.write(config)
+        
 ## exiting script
 print(Fore.WHITE + '\n..')
 print(Fore.WHITE + '\n.....')
