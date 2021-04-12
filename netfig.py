@@ -12,12 +12,12 @@ start_time = datetime.now()
 ##Define Script Header
 script_header = '''
 ╔══════════════════════════════════════════════════════╗
-║              Network Configlet Generator             ║
+║              Network Configlet Generator                  ║
 ╠══════════════════════════════════════════════════════╣
-║ This script generates configlets in seperate files   ║
-║ based on the first column on CSV variables. User     ║
-║ input defines the output location, if the directory  ║
-║ doesn't exist, the directory will be created.        ║
+║ This script generates configlets in seperate files        ║
+║ based on the first column on CSV variables. User          ║
+║ input defines the output location, if the directory       ║
+║ doesn't exist, the directory will be created.             ║
 ╚══════════════════════════════════════════════════════╝
 '''
 
