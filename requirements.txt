@@ -1,4 +1,4 @@
 colorama==0.4.3
 Jinja2==2.11.2
-numpy==1.19.1
+numpy==1.22.0
 pandas==1.1.0
