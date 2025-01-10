@@ -1,119 +1,149 @@
+import typer
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.progress import track
+from pathlib import Path
 import pandas as pd 
-from jinja2 import *
-from colorama import init
-from colorama import Fore
-import os
-import sys
+from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
+import shutil
+from typing import Dict, List, Optional, Any
 
-#start time for script
-start_time = datetime.now()
+from utils.utils import get_current_time_and_date
 
-##Define Script Header
-script_header = '''
-╔══════════════════════════════════════════════════════╗
-║              Network Configlet Generator                  ║
-╠══════════════════════════════════════════════════════╣
-║ This script generates configlets in seperate files        ║
-║ based on the first column on CSV variables. User          ║
-║ input defines the output location, if the directory       ║
-║ doesn't exist, the directory will be created.             ║
-╚══════════════════════════════════════════════════════╝
-'''
+# Initialize typer app and rich console
+app = typer.Typer(help="Network Configlet Generator")
+console = Console()
 
-#resets colorama colors#
-init(autoreset=True)
+# Get current date-time for file naming
+cdt: str = get_current_time_and_date()
 
-
-## script header output
-print(Fore.CYAN +  script_header)
-print(Fore.RED + '\nUsage Example:' + Fore.CYAN + 'netfig.py variables.csv jinjatemplate.j2')
-print(Fore.WHITE + '\n' + '-' * 70)
-print('\n' * 3)
-
-
-## Define Usage ##
-if len(sys.argv) < 3:
-    print(Fore.WHITE + '\n' + '*' * 70)
-    print('\n')
-    print(Fore.RED + 'Usage Error. Try Again. Working Usage Example:' + Fore.CYAN +  'netfig.py variables.csv jinjatemplate.j2')   ##this Script #commands in a list #device type and login type
-    print('\n')
-    print(Fore.WHITE + '*' * 70)
-    print('\n')
-    exit()
-
-
-
-## define csv variables ##
-csv_var = sys.argv[1]
-
-## Ensure system arugment filetype is csv
-check_csv = os.path.splitext(csv_var)[1]
-if '.csv' not in check_csv:
-    print(Fore.RED + 'Error: First Argument must be in CSV format.' + '\n')
-    sys.exit()
-
-## define jinja template to use ## 
-template_var = sys.argv[2]
-
-## Ensure system arugment filetype is csv
-check_jaytwo = os.path.splitext(template_var)[1]
-if '.j2' not in check_jaytwo:
-    print(Fore.RED + 'Error: Second Argument must be in Jinja2 format.' + '\n')
-    sys.exit()
-
-print('\n' + Fore.CYAN + 'Starting netfig.....')
-
-#project directory based in user input
-project_dir = input('\n' + Fore.CYAN + 'Enter the name of the project directory where configlets will be placed: ')
-
-#statically defined directory 
-#Checks if project directory exists or not, overwrites if user instructs to do so.
-
-output_dir = '/YOURDIRECTORYHERE/netfig/{}'.format(project_dir)
-if not os.path.exists(output_dir):
-    os.mkdir(output_dir)
-else:
-    print('\n' + Fore.RED + 'Error: Directory already exists...')    
-    overwrite = input('\n' + Fore.WHITE + 'Overwrite?: y = yes, n = no: ')
-    if overwrite.lower() == 'y':
-        print('\n' + Fore.GREEN + 'Overwriting...')
-    else:
-        print('\n' + Fore.RED + 'Directory remains, please rerun script and choose different name. Exiting...')
-        sys.exit()
+def validate_csv(csv_path: Path) -> Path:
+    """
+    Validate CSV file exists and has correct extension.
+    
+    Args:
+        csv_path: Path to the CSV file
         
-print('\n' + Fore.CYAN + 'Output will be placed into the directory: ' + Fore.RED + '{}'.format(output_dir))
-print('\n' * 4)
-
-## Reads the CSV Data
-df = pd.read_csv(csv_var, na_filter=False, dtype=str)
-data_list = df.to_dict('records')
-
-## Jinja environment and defining template from sys argument ##
-env = Environment(loader=FileSystemLoader(searchpath="."))
-template = env.get_template(template_var)
-
-
-## loop to replace variables based on jinja template and renders accordingly ##
-## outputs each row as its own file ##
-for keys in data_list:
-    config = template.render(keys)
-    fname = list(keys.values())[0]
-    with open(os.path.join(output_dir,fname + '.txt'), 'w') as outputfile:
-            outputfile.write(config)
-
-
-## outputs all content as a single file, helpful for one config for one device ##
-## this file is stored in main directory ##
-for keys in data_list:
-    config = template.render(keys)
-    with open("output-singlefile.txt", 'a') as singleoutput:
-        singleoutput.write(config)
+    Returns:
+        Path: Validated CSV file path
         
-## exiting script
-print(Fore.WHITE + '\n..')
-print(Fore.WHITE + '\n.....')
-print(Fore.WHITE + '\n........')
-print(Fore.WHITE + '\nScript completed successfully, please check output directory for configlets: ')
-print(Fore.RED + '{}'.format(output_dir))
-print(Fore.WHITE + '\nTotal Elapsed time: ' + str(datetime.now() - start_time))
+    Raises:
+        typer.BadParameter: If file doesn't exist or has wrong extension
+    """
+    if not csv_path.exists():
+        raise typer.BadParameter(f"CSV file {csv_path} does not exist")
+    if csv_path.suffix.lower() != '.csv':
+        raise typer.BadParameter("First argument must be a CSV file")
+    return csv_path
+
+def validate_template(template_path: Path) -> Path:
+    """
+    Validate template file exists and has correct extension.
+    
+    Args:
+        template_path: Path to the template file
+        
+    Returns:
+        Path: Validated template file path
+        
+    Raises:
+        typer.BadParameter: If file doesn't exist or has wrong extension
+    """
+    if not template_path.exists():
+        raise typer.BadParameter(f"Template file {template_path} does not exist")
+    if template_path.suffix.lower() != '.j2':
+        raise typer.BadParameter("Second argument must be a Jinja2 template file (.j2)")
+    return template_path
+
+@app.command()
+def generate(
+    csv_file: Path = typer.Argument(..., callback=validate_csv, help="CSV file with variables"),
+    template_file: Path = typer.Argument(..., callback=validate_template, help="Jinja2 template file"),
+    output_dir: Optional[str] = typer.Option(None, "--output", "-o", help="Custom output directory name")
+) -> None:
+    """
+    Generate network configlets from CSV variables and Jinja2 template.
+    
+    Args:
+        csv_file: Path to the CSV file containing variables
+        template_file: Path to the Jinja2 template file
+        output_dir: Optional custom output directory name
+        
+    Returns:
+        None
+    """
+    
+    # Display header
+    console.print(Panel.fit(
+        "[bold cyan]Network Configlet Generator[/bold cyan]\n\n"
+        "This script generates configlets in separate files based on the first column of CSV variables.\n"
+        "User input defines the output location; if the directory doesn't exist, it will be created.",
+        title="Welcome",
+        border_style="cyan"
+    ))
+
+    # Get project directory name if not provided
+    if not output_dir:
+        output_dir = Prompt.ask("\nEnter the name of the project directory where configlets will be placed")
+
+    # Setup output directory
+    base_path: Path = Path.cwd() / 'output' / output_dir
+    if base_path.exists():
+        overwrite: str = Prompt.ask(
+            "\nDirectory already exists. Overwrite?",
+            choices=["y", "n"],
+            default="n"
+        )
+        if overwrite.lower() == "y":
+            console.print("\n[green]Overwriting existing directory...[/green]")
+            shutil.rmtree(base_path)
+        else:
+            console.print("\n[red]Directory remains. Please rerun with a different name.[/red]")
+            raise typer.Exit(1)
+    
+    base_path.mkdir(parents=True, exist_ok=True)
+    console.print(f"\nOutput will be placed into: [cyan]{base_path}[/cyan]\n")
+
+    # Read CSV data
+    try:
+        df: pd.DataFrame = pd.read_csv(csv_file, na_filter=False, dtype=str)
+        data_list: List[Dict[str, Any]] = df.to_dict('records')
+    except Exception as e:
+        console.print(f"[red]Error reading CSV file: {e}[/red]")
+        raise typer.Exit(1)
+
+    # Setup Jinja environment
+    try:
+        env: Environment = Environment(loader=FileSystemLoader(template_file.parent))
+        template = env.get_template(template_file.name)
+    except Exception as e:
+        console.print(f"[red]Error loading template: {e}[/red]")
+        raise typer.Exit(1)
+
+    # Generate configlets with progress bar
+    with console.status("[bold green]Generating configlets...") as status:
+        for item in track(data_list, description="Processing"):
+            try:
+                config: str = template.render(item)
+                fname: str = list(item.values())[0]
+                output_file: Path = base_path / f"{fname}.txt"
+                output_file.write_text(config)
+            except Exception as e:
+                console.print(f"[red]Error processing {fname}: {e}[/red]")
+
+    # Display completion message
+    duration: str = datetime.now().strftime("%H:%M:%S")
+    console.print(f"\n[green]✓[/green] Configlet generation completed at {duration}")
+    console.print(f"[green]✓[/green] Output files are in: [cyan]{base_path}[/cyan]")
+
+    # Generate single file
+    single_file: Path = base_path / f'{cdt}-output-singlefile.txt'
+    with single_file.open("w") as f:
+        for item in data_list:
+            config = template.render(item)
+            f.write(config)
+
+if __name__ == "__main__":
+    app()
